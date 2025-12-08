@@ -32,42 +32,53 @@ jobs:
           tar -xf llvm.tar.xz -C llvm-extract --strip-components=1
           echo "✅ Extracted LLVM archive into llvm-extract/"
 
-      - name: Package binaries
+      - name: Package minimal LLVM
         run: |
           mkdir -p artifacts
           BIN_DIR="llvm-extract/bin"
+          MINIMAL_DIR="llvm-minimal"
 
+          # Create a temporary folder for minimal binaries
+          mkdir -p "$MINIMAL_DIR"
+
+          # List of tools to include
           TOOLS=(
+            clang-21
             clang-format
             clang-tidy
-            clang-query
-            clang-apply-replacements
             run-clang-tidy
           )
 
           for TOOL in "${TOOLS[@]}"; do
             if [ -f "$BIN_DIR/$TOOL" ]; then
-              tar -czf artifacts/${TOOL}-${{ github.event.inputs.version }}-linux-x64.tar.gz -C "$BIN_DIR" "$TOOL"
-              echo "Packaged $TOOL"
+              cp "$BIN_DIR/$TOOL" "$MINIMAL_DIR/"
+              echo "Added $TOOL"
             else
               echo "$TOOL not found"
+              exit 1
             fi
           done
 
-      - name: List artifacts
-        run: ls -lh artifacts
+          # Recreate symlinks inside the folder
+          ln -s clang-21 "$MINIMAL_DIR/clang"
+          ln -s clang-21 "$MINIMAL_DIR/clang++"
+
+          # Create a single tar.gz
+          tar -czvf artifacts/clang-${{ github.event.inputs.version }}-minimal-linux-x64.tar.gz -C "$MINIMAL_DIR" .
+
+          ls -lh
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ github.event.inputs.version }}"
-          name: "Clang Tools ${{ github.event.inputs.version }}"
+          name: "Clang ${{ github.event.inputs.version }} Minimal"
           body: |
-            LLVM tools for version ${{ github.event.inputs.version }}:
+            LLVM binaries for version ${{ github.event.inputs.version }}:
+            - clang-21
             - clang-format
             - clang-tidy
-            - clang-query
-            - clang-apply-replacements
+            - run-clang-tidy
           files: artifacts/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
