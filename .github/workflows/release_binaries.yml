@@ -21,16 +21,15 @@ jobs:
       - name: Download LLVM release
         run: |
           VER=${{ github.event.inputs.version }}
-          wget -q -O llvm.tar.xz \
-            https://github.com/llvm/llvm-project/releases/download/llvmorg-${VER}/LLVM-${VER}-Linux-X64.tar.xz
-          echo "✅ Downloaded LLVM $VER"
+          curl --fail --show-error --location --output llvm.tar.xz https://github.com/llvm/llvm-project/releases/download/llvmorg-${VER}/LLVM-${VER}-Linux-X64.tar.xz
+          echo "Downloaded LLVM $VER"
 
       - name: Extract LLVM
         run: |
           # Extract all contents into a known folder
           mkdir -p llvm-extract
           tar -xf llvm.tar.xz -C llvm-extract --strip-components=1
-          echo "✅ Extracted LLVM archive into llvm-extract/"
+          echo "Extracted LLVM archive into llvm-extract/"
 
       - name: Package minimal LLVM
         run: |
